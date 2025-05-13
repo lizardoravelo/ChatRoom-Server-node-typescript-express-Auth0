@@ -1,0 +1,28 @@
+name: SonarCloud
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for SonarCloud
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=lizardoravelo_ChatRoom-Server-node-typescript-express-Auth0
+            -Dsonar.organization=lizardoravelo
+            -Dsonar.javascript.lcov.reportPaths=
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
