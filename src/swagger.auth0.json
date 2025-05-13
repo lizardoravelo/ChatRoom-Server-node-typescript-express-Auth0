@@ -1,0 +1,900 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Chat Room API",
+    "version": "1.0.0",
+    "description": "API for a WebSocket-based chat application with authentication via Auth0. All protected routes require a JWT access token issued by Auth0. Use the frontend login flow to obtain a token, then test endpoints by authorizing via the Swagger UI. All user authentication and authorization is managed externally through Auth0 \u2014 no traditional login or registration endpoints are exposed in this API."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5001/api",
+      "description": "REST API"
+    },
+    {
+      "url": "ws://localhost:5001",
+      "description": "WebSocket API"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token issued by Auth0. After logging in through the frontend, copy the token and paste it here using the 'Authorize' button."
+      }
+    },
+    "schemas": {
+      "Message": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "roomId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "object",
+            "properties": {
+              "_id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              }
+            }
+          },
+          "content": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "UserSignUp": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "User's name"
+          },
+          "email": {
+            "type": "string",
+            "description": "User's email"
+          },
+          "password": {
+            "type": "string",
+            "description": "User's password"
+          },
+          "address": {
+            "type": "string",
+            "description": "User's address (optional)"
+          },
+          "phone": {
+            "type": "string",
+            "description": "User's phone (optional)"
+          }
+        }
+      },
+      "UserSignIn": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "Room": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          }
+        }
+      },
+      "MessageCreate": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Message content"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/room": {
+      "get": {
+        "summary": "Get all rooms",
+        "tags": ["Room"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of rooms",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Room"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new room",
+        "tags": ["Room"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Room name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Room description"
+                  },
+                  "maxUsers": {
+                    "type": "string",
+                    "description": "Max Number of Users"
+                  },
+                  "isPrivate": {
+                    "type": "boolean",
+                    "description": "Flag to tag if the room is private or not"
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "status of the room"
+                  }
+                },
+                "example": {
+                  "name": "Tech Talks",
+                  "description": "A room for tech discussions",
+                  "maxUsers": 10,
+                  "isPrivate": false,
+                  "status": "active"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Room created successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        }
+      }
+    },
+    "/room/{roomId}/messages": {
+      "get": {
+        "summary": "Get messages for a room",
+        "tags": ["Messages"],
+        "description": "Retrieves messages linked to a room. Messages are stored independently but associated with a specific room.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Message"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "summary": "Send a message to a room",
+        "tags": ["Messages"],
+        "description": "Allows users to send messages in a specific room. Messages are stored independently but associated with the room.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate",
+                "example": {
+                  "content": "Hello, this is my first message!"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message sent successfully"
+          },
+          "400": {
+            "description": "Bad request"
+          }
+        }
+      }
+    },
+    "/socket/connect": {
+      "get": {
+        "summary": "Connect to WebSocket server (WebSocket)",
+        "tags": ["WebSocket"],
+        "description": "**WEBSOCKET EVENT** - Clients connect to the WebSocket server and authenticate using a JWT token in the handshake auth object.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection established successfully"
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/socket/joinRoom": {
+      "post": {
+        "summary": "Join a chat room (WebSocket)",
+        "tags": ["WebSocket"],
+        "description": "**WEBSOCKET EVENT** - Allows a user to join a specific chat room. The user must be active and have a valid role.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "roomId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["roomId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully joined room. Returns 'user joined' and 'active users' events.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userJoined": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "activeUsers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failed to join room",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/socket/leaveRoom": {
+      "post": {
+        "summary": "Leave a chat room (WebSocket)",
+        "tags": ["WebSocket"],
+        "description": "**WEBSOCKET EVENT** - Allows a user to leave a specific chat room.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "roomId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["roomId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully left room. Emits 'user left' event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/socket/sendMessage": {
+      "post": {
+        "summary": "Send a chat message (WebSocket)",
+        "tags": ["WebSocket"],
+        "description": "**WEBSOCKET EVENT** - Users send messages in a chat room. The message will be broadcast to all users in the room.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "roomId": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "_id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["roomId", "content", "userId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message successfully sent. Broadcasts 'newMessage' event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failed to send message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/socket/events/receive": {
+      "get": {
+        "summary": "WebSocket Events to Listen For",
+        "tags": ["WebSocket"],
+        "description": "**WEBSOCKET EVENTS** - These are events that clients should listen for from the server.\n\n- **newMessage**: Receive a new chat message\n- **user joined**: User joined notification\n- **user left**: User left notification\n- **active users**: List of active users in room\n- **error**: Error event notification",
+        "responses": {
+          "200": {
+            "description": "Available events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "newMessage": {
+                      "$ref": "#/components/schemas/Message"
+                    },
+                    "userJoined": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "userLeft": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "activeUsers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns a basic status message to confirm the server is running.",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Server is healthy \ud83d\ude80"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-05-11T17:26:50.772052Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Room",
+      "description": "Chat room operations"
+    },
+    {
+      "name": "Messages",
+      "description": "Message operations"
+    },
+    {
+      "name": "WebSocket",
+      "description": "WebSocket events for real-time communication. Note: These are WebSocket events, not REST endpoints. The paths shown here are for documentation purposes only."
+    },
+    {
+      "name": "System",
+      "description": "System-related endpoints like health checks"
+    }
+  ],
+  "x-websocket-events": {
+    "connection": {
+      "summary": "Connect to WebSocket server",
+      "description": "Clients connect to the WebSocket server and authenticate using a JWT token in the handshake auth object.",
+      "authentication": {
+        "type": "JWT",
+        "location": "socket.handshake.auth.token"
+      },
+      "responses": {
+        "success": {
+          "description": "Connection established successfully."
+        },
+        "error": {
+          "description": "Connection failed due to authentication issues.",
+          "schema": {
+            "$ref": "#/components/schemas/Error"
+          }
+        }
+      }
+    },
+    "join room": {
+      "summary": "Join a chat room",
+      "description": "Allows a user to join a specific chat room. The user must be active and have a valid role.",
+      "parameters": [
+        {
+          "name": "roomId",
+          "in": "body",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "success": [
+          {
+            "event": "user joined",
+            "description": "Notifies other users in the room that a new user has joined.",
+            "data": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "event": "active users",
+            "description": "Provides a list of all active users in the room.",
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "error": {
+          "event": "error",
+          "description": "Failed to join room due to missing requirements or other errors.",
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "example": "JOIN_ROOM_ERROR"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "leave room": {
+      "summary": "Leave a chat room",
+      "description": "Allows a user to leave a specific chat room.",
+      "parameters": [
+        {
+          "name": "roomId",
+          "in": "body",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "success": {
+          "event": "user left",
+          "description": "Notifies other users in the room that a user has left.",
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sendMessage": {
+      "summary": "Send a chat message",
+      "description": "Users send messages in a chat room. The message will be broadcast to all users in the room.",
+      "parameters": [
+        {
+          "name": "message",
+          "in": "body",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "roomId": {
+                "type": "string",
+                "required": true
+              },
+              "content": {
+                "type": "string",
+                "required": true
+              },
+              "userId": {
+                "type": "string",
+                "required": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "_id": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "responses": {
+        "success": {
+          "event": "newMessage",
+          "description": "Message successfully sent and broadcast to the room.",
+          "data": {
+            "$ref": "#/components/schemas/Message"
+          }
+        },
+        "error": {
+          "event": "error",
+          "description": "Message failed to send.",
+          "data": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "example": "SEND_MESSAGE_ERROR"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "newMessage": {
+      "summary": "Receive a chat message",
+      "description": "Users receive new messages when someone in the room sends a message.",
+      "data": {
+        "$ref": "#/components/schemas/Message"
+      }
+    },
+    "user joined": {
+      "summary": "User joined notification",
+      "description": "Event emitted when a new user joins a room.",
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "user left": {
+      "summary": "User left notification",
+      "description": "Event emitted when a user leaves a room or disconnects.",
+      "data": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "active users": {
+      "summary": "Active users in room",
+      "description": "Provides a list of all active users in a room.",
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "userId": {
+              "type": "string"
+            },
+            "username": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "summary": "Error event",
+      "description": "Event emitted when an error occurs during socket operations.",
+      "data": {
+        "$ref": "#/components/schemas/Error"
+      }
+    },
+    "disconnect": {
+      "summary": "Disconnect from WebSocket",
+      "description": "Event fired when users disconnect from the WebSocket server. Removes the user from active sockets and notifies all rooms the user was in.",
+      "responses": {
+        "success": {
+          "event": "user left",
+          "description": "Notifies other users in all rooms that the user has left.",
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
