@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
+    "resolveJsonModule": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@config/*": ["config/*"],
+      "@controller/*": ["controller/*"],
+      "@middleware/*": ["middleware/*"],
+      "@model/*": ["model/*"],
+      "@routes": ["routes"],
+      "@validators/*": ["validators/*"],
+      "@socket/*": ["socket/*"],
+      "@error/*": ["error/*"],
+      "@utils/*": ["utils/*"],
+      "@types": ["types"],
+      "@test/*": ["__test__/*"]
+    },
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "types": ["node", "express"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.json", "src/types"],
+  "exclude": ["node_modules"]
+}
