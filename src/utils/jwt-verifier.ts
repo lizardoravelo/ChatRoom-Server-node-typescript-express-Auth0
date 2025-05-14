@@ -27,7 +27,7 @@ export const verifyJwtToken = (token: string): Promise<JwtPayload> => {
         algorithms: ['RS256'],
       },
       (err, decoded) => {
-        if (err) return reject(err);
+        if (err) return reject(err instanceof Error ? err : new Error(String(err)));
         if (!decoded) return reject(new Error('Token verification failed'));
 
         resolve(decoded as JwtPayload);
