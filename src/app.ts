@@ -1,5 +1,4 @@
 import express, { Application } from 'express';
-import passport from 'passport';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import swaggerUi from 'swagger-ui-express';
@@ -10,7 +9,6 @@ import { router } from '@routes';
 import { initializeSocket } from '@socket/index';
 import { globalRateLimiter } from '@middleware/rateLimiter';
 import { corsOptions, allowedOrigins } from '@middleware/corsOptions';
-import '@config/passport'; // Load configuration
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -36,7 +34,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(passport.initialize());
 app.set('trust proxy', 1);
 app.use(globalRateLimiter);
 app.set('io', io);
