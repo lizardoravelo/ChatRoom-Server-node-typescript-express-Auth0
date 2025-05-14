@@ -10,7 +10,7 @@ const client = jwksRsa({
 });
 
 function getKey(header: JwtHeader, callback: SigningKeyCallback) {
-  client.getSigningKey(header.kid!, (err, key) => {
+  client.getSigningKey(header.kid, (err, key) => {
     const signingKey = key?.getPublicKey();
     callback(err, signingKey);
   });
@@ -27,9 +27,9 @@ export const verifyJwtToken = (token: string): Promise<JwtPayload> => {
         algorithms: ['RS256'],
       },
       (err, decoded) => {
-        if (err || !decoded) {
-          return reject(err || new Error('Token verification failed'));
-        }
+        if (err) return reject(err);
+        if (!decoded) return reject(new Error('Token verification failed'));
+
         resolve(decoded as JwtPayload);
       },
     );

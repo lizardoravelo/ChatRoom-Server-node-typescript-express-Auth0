@@ -29,6 +29,7 @@ export const checkJwt = async (req: Request, res: Response, next: NextFunction) 
     (req as AuthenticatedRequest).auth = decoded;
     next();
   } catch (err) {
+    console.error('JWT verification error:', err);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
@@ -42,7 +43,7 @@ export const authorize =
       return res.status(401).json({ message: 'Unauthorized: No user info found' });
     }
 
-    const userRoles = user[`${config.auth.namespace}roles`] || [];
+    const userRoles = user[`${config.auth.namespace}roles`] ?? [];
 
     if (roles.length > 0 && !roles.some(r => userRoles.includes(r))) {
       return res.status(403).json({ message: 'Access denied: insufficient role' });
