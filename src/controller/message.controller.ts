@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Message from '@model/message';
-import handleErrorResponse from '@error/error-handler';
+import handleErrorResponse from '@error/handle-error';
 import { validateMessage } from '@validators/message';
 import { IUser } from '@model/user';
 import config from '@config/constants';

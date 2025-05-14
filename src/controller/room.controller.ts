@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Room from '@model/room';
-import handleErrorResponse from '@error/error-handler';
+import handleErrorResponse from '@error/handle-error';
 import { validateRoom } from '@validators/room';
 import { IUser } from '@model/user';
 import config from '@config/constants';
