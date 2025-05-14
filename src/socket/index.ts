@@ -23,14 +23,14 @@ export const initializeSocket = (io: Server) => {
     const user = authenticatedSocket.data.user;
     const userId = user.sub;
 
-    console.log(`User connected: ${user.name || user.email} (${user.email})`);
+    console.log(`User connected: ${user.name ?? user.email} (${user.email})`);
     console.log(`Socket ID: ${socket.id}`);
 
     activeSockets.set(userId, socket.id);
 
     authenticatedSocket.on('join room', async (roomId: string) => {
       try {
-        const roles = user[`${config.auth.namespace}roles`] || [];
+        const roles = user[`${config.auth.namespace}roles`] ?? [];
 
         if (!roles || !Array.isArray(roles) || roles.length === 0) {
           throw new Error('User has no assigned roles');
@@ -74,7 +74,7 @@ export const initializeSocket = (io: Server) => {
     });
 
     authenticatedSocket.on('sendMessage', message => {
-      const { roomId, content, userId, createdAt, _id } = message;
+      const { roomId, content, createdAt, _id } = message;
 
       if (!roomId) {
         return authenticatedSocket.emit('error', {
@@ -108,7 +108,7 @@ export const initializeSocket = (io: Server) => {
     authenticatedSocket.on('disconnect', () => {
       userRooms.delete(userId);
 
-      console.log(`User disconnected: ${user.name || user.email}`);
+      console.log(`User disconnected: ${user.name ?? user.email}`);
 
       if (activeSockets.get(userId) === socket.id) {
         activeSockets.delete(userId);
