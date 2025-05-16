@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import Room from '@model/room';
 import handleErrorResponse from '@error/handle-error';
 import { validateRoom } from '@validators/room';
-import { IUser } from '@model/user';
 import config from '@config/constants';
+import { getAuthUser } from '@utils/get-auth-user';
 
 interface RoomQueryParams {
   page?: string;
@@ -20,7 +20,7 @@ interface IRoomController {
 }
 
 const roomCtrl: IRoomController = {
-  getRooms: async (req, res): Promise<void> => {
+  getRooms: async (req: Request<any, any, any, RoomQueryParams>, res: Response): Promise<void> => {
     try {
       const page = parseInt(req.query.page ?? '1');
       const status = req.query.status ?? 'active';
@@ -43,7 +43,10 @@ const roomCtrl: IRoomController = {
         _id: room._id,
         name: room.name,
         description: room.description,
-        activeUsers: room.activeUsers.map(user => ({ name: (user as IUser).name, email: (user as IUser).email })), // Include user list
+        activeUsers: room.activeUsers.map(user => ({
+          name: (user as any).name,
+          email: (user as any).email,
+        })),
       }));
 
       res.status(200).json({
@@ -59,7 +62,7 @@ const roomCtrl: IRoomController = {
     }
   },
 
-  createRoom: async (req, res): Promise<void> => {
+  createRoom: async (req: Request, res: Response): Promise<void> => {
     try {
       const validation = validateRoom(req.body);
       if (!validation.success) {
@@ -67,11 +70,11 @@ const roomCtrl: IRoomController = {
         return;
       }
 
-      const user = req.user as IUser;
+      const user = getAuthUser(req);
       const room = new Room({
         name: req.body.name,
         description: req.body.description,
-        createdBy: user._id,
+        createdBy: user.sub,
         maxUsers: req.body.maxUsers,
         isPrivate: req.body.isPrivate ?? false,
         status: 'active',
@@ -83,18 +86,16 @@ const roomCtrl: IRoomController = {
         .populate('createdBy', 'name email')
         .populate('activeUsers', 'name email');
 
-      // Emit to all connected clients that a new room was created
       req.app.get('io').emit('new room', populatedRoom);
-
       res.status(201).json(populatedRoom);
     } catch (err) {
       handleErrorResponse(res, err);
     }
   },
 
-  joinRoom: async (req, res): Promise<void> => {
+  joinRoom: async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = req.user as IUser;
+      const user = getAuthUser(req);
       const roomId = req.params.roomId;
 
       const room = await Room.findById(roomId);
@@ -113,14 +114,14 @@ const roomCtrl: IRoomController = {
         return;
       }
 
-      const createdBy = room.createdBy as IUser;
-      if (room.isPrivate && createdBy._id !== user._id) {
+      const createdBy = room.createdBy as any;
+      if (room.isPrivate && createdBy._id?.toString() !== user.sub) {
         res.status(403).json({ error: 'Cannot join private room' });
         return;
       }
 
-      if (!room.activeUsers.some(_id => _id === user._id)) {
-        room.activeUsers.push(user._id);
+      if (!room.activeUsers.includes(user.sub)) {
+        room.activeUsers.push(user.sub);
         await room.save();
       }
 
@@ -129,7 +130,7 @@ const roomCtrl: IRoomController = {
         .populate('activeUsers', 'name email');
 
       req.app.get('io').to(roomId).emit('user joined', {
-        userId: user._id,
+        userId: user.sub,
         username: user.name,
         email: user.email,
         room: populatedRoom,
@@ -141,9 +142,9 @@ const roomCtrl: IRoomController = {
     }
   },
 
-  leaveRoom: async (req, res): Promise<void> => {
+  leaveRoom: async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = req.user as IUser;
+      const user = getAuthUser(req);
       const roomId = req.params.roomId;
 
       const room = await Room.findById(roomId);
@@ -152,7 +153,7 @@ const roomCtrl: IRoomController = {
         return;
       }
 
-      room.activeUsers = room.activeUsers.filter(id => id !== user._id);
+      room.activeUsers = room.activeUsers.filter(id => id !== user.sub);
       await room.save();
 
       const populatedRoom = await Room.findById(room._id)
@@ -160,7 +161,7 @@ const roomCtrl: IRoomController = {
         .populate('activeUsers', 'name email');
 
       req.app.get('io').to(roomId).emit('user left', {
-        userId: user._id,
+        userId: user.sub,
         username: user.name,
         email: user.email,
         room: populatedRoom,
@@ -172,9 +173,9 @@ const roomCtrl: IRoomController = {
     }
   },
 
-  updateRoomStatus: async (req, res): Promise<void> => {
+  updateRoomStatus: async (req: Request, res: Response): Promise<void> => {
     try {
-      const user = req.user as IUser;
+      const user = getAuthUser(req);
       const roomId = req.params.roomId;
       const { status } = req.body;
 
@@ -184,8 +185,8 @@ const roomCtrl: IRoomController = {
         return;
       }
 
-      const createdBy = room.createdBy as IUser;
-      if (createdBy._id !== user._id) {
+      const createdBy = room.createdBy as any;
+      if (createdBy._id?.toString() !== user.sub) {
         res.status(403).json({ error: 'Unauthorized to update room status' });
         return;
       }

@@ -1,11 +1,10 @@
 import { Schema, model, Document } from 'mongoose';
 import { IRoom } from './room';
-import { IUser } from './user';
 
 export interface IMessage extends Document {
   content: string;
   roomId: IRoom;
-  userId: IUser;
+  user: string;
 }
 
 const messageSchema = new Schema<IMessage>(
@@ -20,9 +19,8 @@ const messageSchema = new Schema<IMessage>(
       ref: 'Room',
       required: true,
     },
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+    user: {
+      type: String,
       required: true,
     },
   },
