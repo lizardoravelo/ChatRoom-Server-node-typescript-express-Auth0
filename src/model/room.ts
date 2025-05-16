@@ -1,11 +1,10 @@
 import { Schema, model, Document } from 'mongoose';
-import { IUser } from './user';
 
 export interface IRoom extends Document {
   name: string;
   description: string;
-  createdBy: IUser['_id'];
-  activeUsers: IUser['_id'][];
+  createdBy: string;
+  activeUsers: string[];
   maxUsers?: number;
   isPrivate: boolean;
   status: 'active' | 'archived' | 'closed';
@@ -26,14 +25,12 @@ const roomSchema = new Schema<IRoom>(
       trim: true,
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: true,
     },
     activeUsers: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
+        type: String,
       },
     ],
     maxUsers: {

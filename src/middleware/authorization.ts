@@ -3,8 +3,8 @@ import { verifyJwtToken } from '@utils/jwt-verifier';
 import config from '@config/constants';
 import { Auth0User } from '@types';
 
-interface AuthenticatedRequest extends Request {
-  auth?: Auth0User;
+export interface IAuthenticatedRequest extends Request {
+  auth: Auth0User;
 }
 
 function isAuth0User(decoded: any): decoded is Auth0User {
@@ -21,12 +21,15 @@ export const checkJwt = async (req: Request, res: Response, next: NextFunction) 
 
   try {
     const decoded = await verifyJwtToken(token);
+    console.log(decoded);
 
     if (!isAuth0User(decoded)) {
       return res.status(401).json({ message: 'Invalid token payload' });
     }
 
-    (req as AuthenticatedRequest).auth = decoded;
+    // Assign the token payload to req.auth (declared in express module augmentation)
+    (req as any).auth = decoded;
+
     next();
   } catch (err) {
     console.error('JWT verification error:', err);
@@ -37,7 +40,7 @@ export const checkJwt = async (req: Request, res: Response, next: NextFunction) 
 export const authorize =
   (roles: string[] = []) =>
   (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as AuthenticatedRequest).auth;
+    const user = (req as IAuthenticatedRequest).auth;
 
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized: No user info found' });
